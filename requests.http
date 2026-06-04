@@ -1,0 +1,81 @@
+### ORCHESTRATOR AGENT: The AI Traffic Controller
+# Try asking different questions and watch the LLM dynamically route it to [RAG] or [GRAPHRAG]!
+GET http://localhost:8080/api/orchestrator?query=What is the exact error message reported when the frontend load balancer fails? and also tell me If the Payment Gateway is timing out, which downstream team do I need to contact?
+Accept: text/plain
+
+### ORCHESTRATOR AGENT (GraphRAG Routing)
+GET http://localhost:8080/api/orchestrator?query=If the Payment Gateway is timing out, which downstream team do I need to contact?
+Accept: text/plain
+
+###
+
+### Stage 1: Simple AI Call
+# This is a direct pass-through to Vertex AI with no context.
+GET http://localhost:8080/api/simple
+Accept: application/json
+
+###
+
+### Stage 2: In-Context Learning (Prompt Stuffing)
+# We manually provide the context in the JSON body.
+POST http://localhost:8080/api/in-context
+Content-Type: application/json
+
+{
+  "query": "Why is the payment gateway failing?",
+  "context": "Ticket-101: Payment Gateway is timing out for user checkout. Returning 504 Gateway Timeout."
+}
+
+###
+
+### STAGE 3: Standard RAG (Success)
+# Working example: Finds exact error messages from unstructured text.
+GET http://localhost:8080/api/rag/error-details?query=What is the exact error message reported when the frontend load balancer fails?
+Accept: application/json
+
+### STAGE 3: Standard RAG (Failure)
+# Not working example: Fails to find implicit downstream dependencies because it lacks a graph structure.
+GET http://localhost:8080/api/rag/downstream-impact?query=If the Payment Gateway is timing out, which downstream team do I need to contact?
+Accept: application/json
+
+### STAGE 4: GraphRAG (Success)
+# Working example: Successfully traverses the graph to find implicit dependencies and ownership teams.
+GET http://localhost:8080/api/graphrag/downstream-impact?query=If the Payment Gateway is timing out, which downstream team do I need to contact?
+Accept: application/json
+
+### STAGE 4: GraphRAG (Success via Hybrid)
+# Working example: Successfully finds exact error messages because we return both unstructured text and graph topology.
+GET http://localhost:8080/api/graphrag/error-details?query=What is the exact error message reported when the frontend load balancer fails?
+Accept: application/json
+
+###
+### --- ADVANCED EXAMPLES ---
+###
+
+### ADVANCED 1: Reverse Dependency / Upstream Impact (GraphRAG wins, RAG fails)
+GET http://localhost:8080/api/graphrag/upstream-impact?query=If we take the User Database offline for maintenance this weekend, which customer-facing services will break?
+Accept: application/json
+
+### ADVANCED 1: Standard RAG (Fails)
+GET http://localhost:8080/api/rag/upstream-impact?query=If we take the User Database offline for maintenance this weekend, which customer-facing services will break?
+Accept: application/json
+
+
+### ADVANCED 2: Cross-Silo Aggregation (GraphRAG wins, RAG fails)
+GET http://localhost:8080/api/graphrag/team-bottleneck?query=Which engineering team is currently responsible for the highest number of failing services?
+Accept: application/json
+
+### ADVANCED 2: Standard RAG (Fails)
+GET http://localhost:8080/api/rag/team-bottleneck?query=Which engineering team is currently responsible for the highest number of failing services?
+Accept: application/json
+
+
+### ADVANCED 3: The Obscure Stack Trace (Standard RAG wins, GraphRAG fails)
+GET http://localhost:8080/api/rag/obscure-trace?query=Have we ever seen a NullPointerException occurring exactly on line 428 in the old payment monolith?
+Accept: application/json
+
+### ADVANCED 3: GraphRAG (Success via Hybrid)
+# It now successfully finds the obscure stack trace because we included the raw text in the Hybrid Graph traversal.
+GET http://localhost:8080/api/graphrag/obscure-trace?query=Have we ever seen a NullPointerException occurring exactly on line 428 in the old payment monolith?
+Accept: application/json
+

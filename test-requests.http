@@ -1,0 +1,21 @@
+### Test Simple AI (No Context)
+GET http://localhost:8080/api/simple?query=Why is the Payment Processing system failing, and who should I contact?
+Accept: application/json
+
+### Test In-Context Learning (Prompt Stuffing)
+POST http://localhost:8080/api/in-context
+Content-Type: application/json
+Accept: application/json
+
+{
+  "query": "Why is the Payment Processing system failing, and who should I contact?",
+  "context": "Ticket-102: The Payment Gateway service is currently experiencing latency due to a downstream failure in the User Database. Contact the Backend Platform Team."
+}
+
+### Standard RAG Endpoint
+GET http://localhost:8080/api/rag?query=Why is the Payment Processing system failing, and who should I contact?
+Accept: text/plain
+
+### GraphRAG Endpoint
+GET http://localhost:8080/api/graphrag?query=Why is the Payment Processing system failing, and who should I contact?
+Accept: text/plain
